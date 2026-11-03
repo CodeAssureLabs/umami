@@ -5,19 +5,67 @@ import prisma from '@/lib/prisma';
 import type { Auth } from '@/lib/types';
 import { getTeamUser, getWebsite } from '@/queries/prisma';
 
-export async function canViewWebsite({ user, shareToken }: Auth, websiteId: string) {
-  if (user?.isAdmin) {
-    return true;
-  }
-
-  if (
+function hasShareAccess(shareToken: Auth['shareToken'], websiteId: string) {
+  return (
     shareToken?.websiteId === websiteId ||
     shareToken?.pixelId === websiteId ||
     shareToken?.linkId === websiteId ||
     shareToken?.websiteIds?.includes(websiteId) ||
     shareToken?.pixelIds?.includes(websiteId) ||
     shareToken?.linkIds?.includes(websiteId)
-  ) {
+  );
+}
+
+function getShareAllowedIds(shareToken: Auth['shareToken']) {
+  return new Set(
+    [
+      shareToken?.websiteId,
+      shareToken?.pixelId,
+      shareToken?.linkId,
+      ...(shareToken?.websiteIds ?? []),
+      ...(shareToken?.pixelIds ?? []),
+      ...(shareToken?.linkIds ?? []),
+    ].filter((id): id is string => Boolean(id)),
+  );
+}
+
+function isOwner(user: NonNullable<Auth['user']>, entity: { userId?: string | null }) {
+  return user.id === entity.userId;
+}
+
+async function isTeamMember(user: NonNullable<Auth['user']>, teamId: string) {
+  const teamUser = await getTeamUser(teamId, user.id);
+
+  return !!teamUser;
+}
+
+async function getMemberTeamIds(userId: string, teamIds: string[]) {
+  if (!teamIds.length) {
+    return new Set<string>();
+  }
+
+  const teamUsers = await prisma.client.teamUser.findMany({
+    where: {
+      userId,
+      teamId: {
+        in: teamIds,
+      },
+      team: { deletedAt: null },
+    },
+    select: {
+      teamId: true,
+    },
+  });
+
+  return new Set(teamUsers.map(teamUser => teamUser.teamId));
+}
+
+export async function canViewWebsite({ user, shareToken }: Auth, websiteId: string) {
+  if (user?.isAdmin) {
+    return true;
+  }
+
+  if (hasShareAccess(shareToken, websiteId)) {
     return true;
   }
 
@@ -28,13 +76,11 @@ export async function canViewWebsite({ user, shareToken }: Auth, websiteId: stri
   }
 
   if (entity.userId) {
-    return user.id === entity.userId;
+    return isOwner(user, entity);
   }
 
   if (entity.teamId) {
-    const teamUser = await getTeamUser(entity.teamId, user.id);
-
-    return !!teamUser;
+    return isTeamMember(user, entity.teamId);
   }
 
   return false;
@@ -51,16 +97,7 @@ export async function canViewBatchWebsites({ user, shareToken }: Auth, websiteId
     return requestedIds;
   }
 
-  const shareAllowedIds = new Set(
-    [
-      shareToken?.websiteId,
-      shareToken?.pixelId,
-      shareToken?.linkId,
-      ...(shareToken?.websiteIds ?? []),
-      ...(shareToken?.pixelIds ?? []),
-      ...(shareToken?.linkIds ?? []),
-    ].filter((id): id is string => Boolean(id)),
-  );
+  const shareAllowedIds = getShareAllowedIds(shareToken);
 
   if (!user) {
     return requestedIds.filter(id => shareAllowedIds.has(id));
@@ -87,21 +124,7 @@ export async function canViewBatchWebsites({ user, shareToken }: Auth, websiteId
       websites.map(website => website.teamId).filter((teamId): teamId is string => Boolean(teamId)),
     ),
   );
-  const teamUsers = teamIds.length
-    ? await prisma.client.teamUser.findMany({
-        where: {
-          userId: user.id,
-          teamId: {
-            in: teamIds,
-          },
-          team: { deletedAt: null },
-        },
-        select: {
-          teamId: true,
-        },
-      })
-    : [];
-  const allowedTeamIds = new Set(teamUsers.map(teamUser => teamUser.teamId));
+  const allowedTeamIds = await getMemberTeamIds(user.id, teamIds);
   const teamOwnedIds = new Set(
     websites
       .filter(website => website.teamId && allowedTeamIds.has(website.teamId))
