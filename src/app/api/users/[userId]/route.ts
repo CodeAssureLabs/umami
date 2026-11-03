@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { hashPassword } from '@/lib/password';
 import { parseRequest } from '@/lib/request';
 import { badRequest, json, notFound, ok, unauthorized } from '@/lib/response';
 import { userRoleParam } from '@/lib/schema';
 import { canDeleteUser, canUpdateUser, canViewUser } from '@/permissions';
+import { buildUserUpdate } from '@/lib/user-update';
 import { deleteUser, getUser, getUserByUsername, updateUser } from '@/queries/prisma';
 
 export async function GET(request: Request, { params }: { params: Promise<{ userId: string }> }) {
@@ -43,28 +43,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
     return unauthorized();
   }
 
-  const { username, password, role } = body;
-
   const user = await getUser(userId);
 
   if (!user) {
     return notFound();
   }
 
-  const data: any = {};
-
-  if (password) {
-    data.password = hashPassword(password);
-  }
-
-  // Only admin can change these fields
-  if (role && auth.user.isAdmin) {
-    data.role = role;
-  }
-
-  if (username && auth.user.isAdmin) {
-    data.username = username.toLowerCase();
-  }
+  const data = buildUserUpdate(body, { isAdmin: auth.user.isAdmin });
 
   // Check when username changes
   if (data.username && user.username !== data.username) {
