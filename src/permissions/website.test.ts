@@ -86,6 +86,18 @@ describe('canViewWebsite', () => {
     ).resolves.toBe(true);
   });
 
+  test('allows a link share token id', async () => {
+    await expect(
+      canViewWebsite({ shareToken: { linkId: 'website-1' } as any }, 'website-1'),
+    ).resolves.toBe(true);
+  });
+
+  test('allows a website id present in share token link ids', async () => {
+    await expect(
+      canViewWebsite({ shareToken: { linkIds: ['website-1'] } as any }, 'website-1'),
+    ).resolves.toBe(true);
+  });
+
   test('denies when entity is missing', async () => {
     vi.mocked(getEntity).mockResolvedValue(null as any);
     await expect(canViewWebsite({ user: normalUser }, 'website-1')).resolves.toBe(false);
