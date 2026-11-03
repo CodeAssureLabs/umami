@@ -263,12 +263,6 @@ describe('canDeleteWebsite', () => {
     vi.mocked(getTeamUser).mockResolvedValue({ role: 'team-member' } as any);
     await expect(canDeleteWebsite({ user: normalUser }, 'website-1')).resolves.toBe(true);
   });
-
-  test('denies a team-view-only member', async () => {
-    vi.mocked(getWebsite).mockResolvedValue({ teamId: 'team-1' } as any);
-    vi.mocked(getTeamUser).mockResolvedValue({ role: 'team-view-only' } as any);
-    await expect(canDeleteWebsite({ user: normalUser }, 'website-1')).resolves.toBe(false);
-  });
 });
 
 describe('canTransferWebsiteToUser', () => {

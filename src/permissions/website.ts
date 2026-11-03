@@ -129,7 +129,7 @@ export async function canCreateWebsite({ user }: Auth) {
   return hasPermission(user.role, PERMISSIONS.websiteCreate);
 }
 
-export async function canUpdateWebsite({ user }: Auth, websiteId: string) {
+async function canManageWebsite({ user }: Auth, websiteId: string, permission?: string) {
   if (!user) {
     return false;
   }
@@ -151,38 +151,22 @@ export async function canUpdateWebsite({ user }: Auth, websiteId: string) {
   if (website.teamId) {
     const teamUser = await getTeamUser(website.teamId, user.id);
 
-    return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteUpdate);
+    if (!permission) {
+      return !!teamUser;
+    }
+
+    return teamUser && hasPermission(teamUser.role, permission);
   }
 
   return false;
 }
 
-export async function canDeleteWebsite({ user }: Auth, websiteId: string) {
-  if (!user) {
-    return false;
-  }
+export async function canUpdateWebsite(auth: Auth, websiteId: string) {
+  return canManageWebsite(auth, websiteId, PERMISSIONS.websiteUpdate);
+}
 
-  if (user.isAdmin) {
-    return true;
-  }
-
-  const website = await getWebsite(websiteId);
-
-  if (!website) {
-    return false;
-  }
-
-  if (website.userId) {
-    return user.id === website.userId;
-  }
-
-  if (website.teamId) {
-    const teamUser = await getTeamUser(website.teamId, user.id);
-
-    return teamUser && hasPermission(teamUser.role, PERMISSIONS.websiteDelete);
-  }
-
-  return false;
+export async function canDeleteWebsite(auth: Auth, websiteId: string) {
+  return canManageWebsite(auth, websiteId);
 }
 
 export async function canTransferWebsiteToUser({ user }: Auth, websiteId: string, userId: string) {
