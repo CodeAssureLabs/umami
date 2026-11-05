@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import Papa from 'papaparse';
+import { toCsv } from '@/lib/csv';
 import { getQueryFilters, parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { pagingParams, withDateRange } from '@/lib/schema';
@@ -40,40 +40,13 @@ export async function GET(
 
   const zip = new JSZip();
 
-  // Prefix cells whose first character is a formula trigger with a single quote
-  // to prevent CSV formula injection when opened in spreadsheet applications.
-  const FORMULA_TRIGGERS = new Set(['=', '+', '-', '@', '\t', '\r']);
-
-  const sanitizeCsvValue = (value: unknown): unknown => {
-    if (typeof value === 'string' && value.length > 0 && FORMULA_TRIGGERS.has(value[0])) {
-      return `'${value}`;
-    }
-    return value;
-  };
-
-  const sanitizeRow = (row: Record<string, unknown>): Record<string, unknown> => {
-    const sanitized: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(row)) {
-      sanitized[key] = sanitizeCsvValue(value);
-    }
-    return sanitized;
-  };
-
-  const parse = (data: any) => {
-    const sanitized = Array.isArray(data) ? data.map(sanitizeRow) : data;
-    return Papa.unparse(sanitized, {
-      header: true,
-      skipEmptyLines: true,
-    });
-  };
-
-  zip.file('events.csv', parse(events));
-  zip.file('pages.csv', parse(pages));
-  zip.file('referrers.csv', parse(referrers));
-  zip.file('browsers.csv', parse(browsers));
-  zip.file('os.csv', parse(os));
-  zip.file('devices.csv', parse(devices));
-  zip.file('countries.csv', parse(countries));
+  zip.file('events.csv', toCsv(events));
+  zip.file('pages.csv', toCsv(pages));
+  zip.file('referrers.csv', toCsv(referrers));
+  zip.file('browsers.csv', toCsv(browsers));
+  zip.file('os.csv', toCsv(os));
+  zip.file('devices.csv', toCsv(devices));
+  zip.file('countries.csv', toCsv(countries));
 
   const content = await zip.generateAsync({ type: 'nodebuffer' });
   const base64 = content.toString('base64');
