@@ -8,6 +8,7 @@ import {
   heatmapReportSchema,
   journeyReportSchema,
   pagingParams,
+  sortingParams,
   timezoneParam,
   unitParam,
 } from './schema';
@@ -72,7 +73,12 @@ export const funnelQuerySchema = analyticsSchema({
 });
 export const goalQuerySchema = analyticsSchema(goalParametersSchema.shape);
 export const savedStatsQuerySchema = analyticsSchema({});
-export const definitionListSchema = z.object({ ...pagingParams, search: z.string().optional() });
+export const definitionListSchema = z.object({
+  ...pagingParams,
+  search: z.string().optional(),
+  orderBy: z.enum(['name', 'createdAt', 'updatedAt']).optional(),
+  sortDescending: sortingParams.sortDescending,
+});
 export const funnelDefinitionSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(500).optional(),
