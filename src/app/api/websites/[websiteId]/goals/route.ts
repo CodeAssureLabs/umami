@@ -3,7 +3,7 @@ import { uuid } from '@/lib/crypto';
 import { parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
 import { canUpdateWebsite, canViewWebsiteSection } from '@/permissions';
-import { createReport, getReports } from '@/queries/prisma';
+import { createReport, getWebsiteDefinitions } from '@/queries/prisma';
 
 export async function GET(
   request: Request,
@@ -13,9 +13,7 @@ export async function GET(
   if (error) return error();
   const { websiteId } = await params;
   if (!(await canViewWebsiteSection(auth, websiteId, 'goals'))) return unauthorized();
-  return json(
-    await getReports({ where: { websiteId, type: 'goal', website: { deletedAt: null } } }, query),
-  );
+  return json(await getWebsiteDefinitions(websiteId, 'goal', query));
 }
 
 export async function POST(

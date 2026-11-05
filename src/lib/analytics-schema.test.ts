@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { breakdownQuerySchema, journeyQuerySchema, retentionQuerySchema } from './analytics-schema';
+import {
+  breakdownQuerySchema,
+  definitionListSchema,
+  journeyQuerySchema,
+  retentionQuerySchema,
+} from './analytics-schema';
 
 const range = { startAt: '1000', endAt: '2000' };
 
@@ -31,5 +36,17 @@ describe('analytics GET schemas', () => {
       steps: 3,
       eventType: 2,
     });
+  });
+});
+
+describe('definition list schema', () => {
+  test('accepts supported sort columns and direction', () => {
+    expect(
+      definitionListSchema.parse({ orderBy: 'updatedAt', sortDescending: 'true', page: '2' }),
+    ).toEqual({ orderBy: 'updatedAt', sortDescending: true, page: 2 });
+  });
+  test('rejects unsupported sort columns', () => {
+    expect(definitionListSchema.safeParse({ orderBy: 'parameters' }).success).toBe(false);
+    expect(definitionListSchema.safeParse({ sortDescending: 'yes' }).success).toBe(false);
   });
 });

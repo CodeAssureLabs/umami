@@ -87,6 +87,25 @@ export async function getWebsiteReports(websiteId: string, filters: QueryFilters
   );
 }
 
+export async function getWebsiteDefinitions(
+  websiteId: string,
+  type: 'funnel' | 'goal',
+  filters: QueryFilters = {},
+) {
+  return getReports(
+    {
+      where: {
+        websiteId,
+        type,
+        website: {
+          deletedAt: null,
+        },
+      },
+    },
+    filters,
+  );
+}
+
 export async function createReport(data: Prisma.ReportUncheckedCreateInput) {
   return prisma.client.report.create({ data });
 }
