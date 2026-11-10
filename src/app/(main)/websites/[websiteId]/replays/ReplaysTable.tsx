@@ -36,6 +36,11 @@ export function ReplaysTable({ ...props }: DataTableProps) {
           </Link>
         )}
       </DataColumn>
+      <DataColumn id="distinctIds" label={t(labels.distinctId)} width="200px">
+        {(row: any) => (
+          <span style={{ overflowWrap: 'anywhere' }}>{row.distinctIds?.join(', ')}</span>
+        )}
+      </DataColumn>
       <DataColumn id="duration" label={t(labels.duration)} width="100px">
         {(row: any) => formatDuration(row.duration || 0)}
       </DataColumn>

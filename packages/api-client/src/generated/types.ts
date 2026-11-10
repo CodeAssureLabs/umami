@@ -19469,6 +19469,7 @@ export interface operations {
                * @description Date and time the record was created.
                */
               createdAt: string;
+              distinctIds: string[];
               /** @description Unique identifier of the resource. */
               id: string;
               /** @description Display name of the resource. */
@@ -21611,6 +21612,7 @@ export interface operations {
               createdAt: string;
               /** @description Device category used by the visitor. */
               device: string;
+              distinctIds: string[];
               /** @description Replay duration in milliseconds. */
               duration: number;
               /** @description Date and time the recording ended. */
